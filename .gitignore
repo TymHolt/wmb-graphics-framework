@@ -1,6 +1,6 @@
-out/
-!**/src/main/**/out/
-!**/src/test/**/out/
+# Maven
+target/
+
+# IntelliJ IDEA
+.idea/
 *.iml
-.idea
-libs
