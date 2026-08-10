@@ -6,12 +6,12 @@ import org.wmbgf.graphics.IWmbAllocatedMesh;
 public final class WmbAllocatedMesh2D implements IWmbAllocatedMesh {
 
     private final int vaoId;
-    private final int vboId;
+    private final int[] bufferIds;
     private final int vertexCount;
 
-    WmbAllocatedMesh2D(int vaoId, int vboId, int vertexCount) {
+    WmbAllocatedMesh2D(int vaoId, int[] bufferIds, int vertexCount) {
         this.vaoId = vaoId;
-        this.vboId = vboId;
+        this.bufferIds = bufferIds;
         this.vertexCount = vertexCount;
     }
 
@@ -28,6 +28,6 @@ public final class WmbAllocatedMesh2D implements IWmbAllocatedMesh {
     @Override
     public void delete() {
         GL30.glDeleteVertexArrays(this.vaoId);
-        GL30.glDeleteBuffers(this.vboId);
+        GL30.glDeleteBuffers(this.bufferIds);
     }
 }

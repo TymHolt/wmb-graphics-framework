@@ -66,7 +66,7 @@ public final class WmbMeshBuilder2D {
         GL30.glBindBuffer(GL30.GL_ARRAY_BUFFER, 0);
 
         GL30.glBindVertexArray(vaoId);
-        return new WmbAllocatedMesh2D(vaoId, vboId, this.indexValues.size());
+        return new WmbAllocatedMesh2D(vaoId, new int[] {vboId, eboId}, this.indexValues.size());
     }
 
     private static int createVbo(int attributeIndex, List<Float> valueList) {
