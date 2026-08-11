@@ -26,7 +26,7 @@ public final class WmbAllocatedMesh2D implements IWmbAllocatedMesh {
     }
 
     @Override
-    public void delete() {
+    public void dispose() {
         GL30.glDeleteVertexArrays(this.vaoId);
         GL30.glDeleteBuffers(this.bufferIds);
     }

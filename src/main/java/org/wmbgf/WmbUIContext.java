@@ -4,12 +4,29 @@ import org.lwjgl.glfw.Callbacks;
 import org.lwjgl.glfw.GLFW;
 import org.lwjgl.glfw.GLFWErrorCallback;
 import org.lwjgl.opengl.GL;
+import org.wmbgf.graphics.g2d.ISize2D;
 
 import java.awt.*;
 
 public final class WmbUIContext {
 
     private static long windowId;
+    private static class WindowSize implements ISize2D {
+
+        int width;
+        int height;
+
+        @Override
+        public int getWidth() {
+            return this.width;
+        }
+
+        @Override
+        public int getHeight() {
+            return this.height;
+        }
+    };
+    private final static WindowSize windowSize = new WindowSize();
 
     public static void runFramework(IApplicationHandler applicationHandler) {
         GLFWErrorCallback.createPrint(System.err).set();
@@ -40,9 +57,19 @@ public final class WmbUIContext {
             applicationHandler.onInit();
 
             while (!GLFW.glfwWindowShouldClose(WmbUIContext.windowId)) {
+                // Poll UI events
+                GLFW.glfwPollEvents();
+
+                // Update window size
+                final int[] widthPointer = new int[1];
+                final int[] heightPointer = new int[1];
+                GLFW.glfwGetFramebufferSize(windowId, widthPointer, heightPointer);
+                WmbUIContext.windowSize.width = widthPointer[0];
+                WmbUIContext.windowSize.height = heightPointer[0];
+
+                // Update application and render
                 applicationHandler.onUpdate();
                 GLFW.glfwSwapBuffers(WmbUIContext.windowId);
-                GLFW.glfwPollEvents();
             }
 
             applicationHandler.onDestroy();
@@ -55,5 +82,9 @@ public final class WmbUIContext {
         GLFW.glfwDestroyWindow(WmbUIContext.windowId);
         GLFW.glfwTerminate();
         GLFW.glfwSetErrorCallback(null).free();
+    }
+
+    public static ISize2D getSize() {
+        return WmbUIContext.windowSize;
     }
 }

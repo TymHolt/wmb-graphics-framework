@@ -4,5 +4,5 @@ public interface IWmbAllocatedMesh {
 
     int getId();
     int getVertexCount();
-    void delete();
+    void dispose();
 }
