@@ -1,7 +1,6 @@
 package org.wmbgf.graphics;
 
-public interface IWmbAllocatedMesh {
+public interface IWmbAllocatedShader {
     int getId();
-    int getVertexCount();
     void dispose();
 }
