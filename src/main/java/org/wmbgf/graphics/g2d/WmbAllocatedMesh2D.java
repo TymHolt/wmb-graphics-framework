@@ -3,7 +3,7 @@ package org.wmbgf.graphics.g2d;
 import org.lwjgl.opengl.GL30;
 import org.wmbgf.graphics.IWmbAllocatedMesh;
 
-public final class WmbAllocatedMesh2D implements IWmbAllocatedMesh {
+final class WmbAllocatedMesh2D implements IWmbAllocatedMesh {
 
     private final int vaoId;
     private final int[] bufferIds;

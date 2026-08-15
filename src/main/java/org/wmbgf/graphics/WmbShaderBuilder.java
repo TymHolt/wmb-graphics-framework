@@ -62,7 +62,7 @@ public final class WmbShaderBuilder {
                 throw new LinkException(log);
             }
 
-            return null; // TODO Return actual result
+            return new WmbAllocatedShaderGuard(null); // TODO Return actual result with guard
         }
     }
 

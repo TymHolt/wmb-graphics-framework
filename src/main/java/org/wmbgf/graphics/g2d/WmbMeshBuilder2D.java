@@ -1,6 +1,8 @@
 package org.wmbgf.graphics.g2d;
 
 import org.lwjgl.opengl.GL30;
+import org.wmbgf.graphics.IWmbAllocatedMesh;
+import org.wmbgf.graphics.WmbAllocatedMeshGuard;
 import org.wmbgf.graphics.WmbPrimitiveType;
 import org.wmbgf.utils.FloatArrayBuilder;
 import org.wmbgf.utils.IntArrayBuilder;
@@ -99,7 +101,7 @@ public final class WmbMeshBuilder2D {
      * @return The ready-to-render mesh.
      * @throws IllegalStateException If the data cannot be verified.
      */
-    public WmbAllocatedMesh2D allocate() {
+    public IWmbAllocatedMesh allocate() {
         verifyExcept();
 
         final int vaoId = GL30.glGenVertexArrays();
@@ -110,7 +112,8 @@ public final class WmbMeshBuilder2D {
             try {
                 final int eboId = createEbo(this.indexValues.toArray());
                 try {
-                    return new WmbAllocatedMesh2D(vaoId, new int[] {vboId, eboId}, this.indexValues.getSize());
+                    return new WmbAllocatedMeshGuard(new WmbAllocatedMesh2D(vaoId, new int[] {vboId, eboId},
+                        this.indexValues.getSize()));
                 } catch (Exception exception) {
                     GL30.glDeleteBuffers(eboId);
                     throw exception;
