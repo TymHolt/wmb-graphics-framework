@@ -2,16 +2,16 @@ package org.wmbgf.graphics.g2d;
 
 import org.lwjgl.opengl.GL30;
 import org.wmbgf.graphics.WmbPrimitiveType;
+import org.wmbgf.utils.FloatArrayBuilder;
+import org.wmbgf.utils.IntArrayBuilder;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Objects;
 
 public final class WmbMeshBuilder2D {
 
     private final WmbPrimitiveType primitiveType;
-    private final List<Float> vertexValues = new ArrayList<>();
-    private final List<Integer> indexValues = new ArrayList<>();
+    private final FloatArrayBuilder vertexValues = new FloatArrayBuilder();
+    private final IntArrayBuilder indexValues = new IntArrayBuilder();
 
     /**
      * Create a builder for 2D meshes.
@@ -30,9 +30,9 @@ public final class WmbMeshBuilder2D {
      * @param y The vertices y coordinate.
      */
     public void addVertex(float x, float y) {
-        this.vertexValues.add(x);
-        this.vertexValues.add(y);
-        this.indexValues.add(this.indexValues.size());
+        this.vertexValues.append(x);
+        this.vertexValues.append(y);
+        this.indexValues.append(this.indexValues.getSize());
     }
 
     /**
@@ -55,7 +55,7 @@ public final class WmbMeshBuilder2D {
      * @throws IllegalStateException If the data cannot be verified.
      */
     public void verifyExcept() {
-        final int indexCount = this.indexValues.size();
+        final int indexCount = this.indexValues.getSize();
 
         if(indexCount == 0)
             throw new IllegalStateException("No indices added");
@@ -66,7 +66,7 @@ public final class WmbMeshBuilder2D {
                     indexCount, this.primitiveType.vertexCount));
 
         final int valuesPerVertex = 2;
-        final int vertexValueCount = this.vertexValues.size();
+        final int vertexValueCount = this.vertexValues.getSize();
 
         if (vertexValueCount % valuesPerVertex != 0)
             throw new IllegalStateException(
@@ -74,11 +74,14 @@ public final class WmbMeshBuilder2D {
                     vertexValueCount, valuesPerVertex));
 
         final int vertexCount = vertexValueCount / valuesPerVertex;
-        for (int index : this.indexValues)
+        final IntArrayBuilder.BuilderIterator indexIterator = this.indexValues.createIterator();
+        do {
+            final int index = indexIterator.getCurrent();
             if (index < 0 || index >= vertexCount)
                 throw new IllegalStateException(
                     String.format("Index (%d) out of range, vertex count is %d",
                         index, vertexCount));
+        } while (indexIterator.next());
     }
 
     /**
@@ -103,11 +106,11 @@ public final class WmbMeshBuilder2D {
         try {
             GL30.glBindVertexArray(vaoId);
 
-            final int vboId = createVbo(0, this.vertexValues);
+            final int vboId = createVbo(0, this.vertexValues.toArray());
             try {
-                final int eboId = createEbo(this.indexValues);
+                final int eboId = createEbo(this.indexValues.toArray());
                 try {
-                    return new WmbAllocatedMesh2D(vaoId, new int[] {vboId, eboId}, this.indexValues.size());
+                    return new WmbAllocatedMesh2D(vaoId, new int[] {vboId, eboId}, this.indexValues.getSize());
                 } catch (Exception exception) {
                     GL30.glDeleteBuffers(eboId);
                     throw exception;
@@ -125,16 +128,11 @@ public final class WmbMeshBuilder2D {
         }
     }
 
-    private static int createVbo(int attributeIndex, List<Float> valueList) {
-        final float[] valueArray = new float[valueList.size()];
-        int index = 0;
-        for (float value : valueList)
-            valueArray[index++] = value;
-
+    private static int createVbo(int attributeIndex, float[] values) {
         final int vboId = GL30.glGenBuffers();
         try {
             GL30.glBindBuffer(GL30.GL_ARRAY_BUFFER, vboId);
-            GL30.glBufferData(GL30.GL_ARRAY_BUFFER, valueArray, GL30.GL_STATIC_DRAW);
+            GL30.glBufferData(GL30.GL_ARRAY_BUFFER, values, GL30.GL_STATIC_DRAW);
             GL30.glVertexAttribPointer(attributeIndex, 2, GL30.GL_FLOAT, false, 0, 0);
             GL30.glEnableVertexAttribArray(attributeIndex);
             return vboId;
@@ -144,20 +142,15 @@ public final class WmbMeshBuilder2D {
         }
     }
 
-    private static int createEbo(List<Integer> valueList) {
-        final int[] valueArray = new int[valueList.size()];
-        int index = 0;
-        for (int value : valueList)
-            valueArray[index++] = value;
-
+    private static int createEbo(int[] values) {
         final int eboId = GL30.glGenBuffers();
         try {
             GL30.glBindBuffer(GL30.GL_ELEMENT_ARRAY_BUFFER, eboId);
-            GL30.glBufferData(GL30.GL_ELEMENT_ARRAY_BUFFER, valueArray, GL30.GL_STATIC_DRAW);
+            GL30.glBufferData(GL30.GL_ELEMENT_ARRAY_BUFFER, values, GL30.GL_STATIC_DRAW);
+            return eboId;
         } catch(Exception exception) {
             GL30.glDeleteBuffers(eboId);
             throw exception;
         }
-        return eboId;
     }
 }
