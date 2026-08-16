@@ -2,7 +2,6 @@ package org.wmbgf.graphics.g2d;
 
 import org.lwjgl.opengl.GL30;
 import org.wmbgf.graphics.IWmbAllocatedMesh;
-import org.wmbgf.graphics.WmbAllocatedMeshGuard;
 import org.wmbgf.graphics.WmbPrimitiveType;
 import org.wmbgf.utils.FloatArrayBuilder;
 import org.wmbgf.utils.IntArrayBuilder;
@@ -102,7 +101,19 @@ public final class WmbMeshBuilder2D {
      * @throws IllegalStateException If the data cannot be verified.
      */
     public IWmbAllocatedMesh allocate() {
-        verifyExcept();
+        return allocate(true);
+    }
+
+    /**
+     * Allocates the added data on the GPU and returns a mesh instance that can be used for rendering.
+     *
+     * @param verifyData If the data should be verified before allocation using verifyEcept().
+     * @return The ready-to-render mesh.
+     * @throws IllegalStateException If the data fails verification.
+     */
+    public IWmbAllocatedMesh allocate(boolean verifyData) {
+        if (verifyData)
+            verifyExcept();
 
         final int vaoId = GL30.glGenVertexArrays();
         try {
@@ -154,6 +165,65 @@ public final class WmbMeshBuilder2D {
         } catch(Exception exception) {
             GL30.glDeleteBuffers(eboId);
             throw exception;
+        }
+    }
+
+    private static final class WmbAllocatedMesh2D implements IWmbAllocatedMesh {
+
+        private final int vaoId;
+        private final int[] bufferIds;
+        private final int vertexCount;
+
+        private WmbAllocatedMesh2D(int vaoId, int[] bufferIds, int vertexCount) {
+            this.vaoId = vaoId;
+            this.bufferIds = bufferIds;
+            this.vertexCount = vertexCount;
+        }
+
+        @Override
+        public int getId() {
+            return this.vaoId;
+        }
+
+        @Override
+        public int getVertexCount() {
+            return this.vertexCount;
+        }
+
+        @Override
+        public void dispose() {
+            GL30.glDeleteVertexArrays(this.vaoId);
+            GL30.glDeleteBuffers(this.bufferIds);
+        }
+    }
+
+    /**
+     * This class contains an IWmbAllocatedMesh instance and propagates all function calls to the contained instance. The
+     * instance is set to null when disposed, that way all following calls will produce a NullPointerException as that
+     * resource is not available anymore.
+     */
+    private static final class WmbAllocatedMeshGuard implements IWmbAllocatedMesh {
+
+        private IWmbAllocatedMesh mesh;
+
+        private WmbAllocatedMeshGuard(IWmbAllocatedMesh mesh) {
+            this.mesh = mesh;
+        }
+
+        @Override
+        public int getId() {
+            return this.mesh.getId();
+        }
+
+        @Override
+        public int getVertexCount() {
+            return this.mesh.getVertexCount();
+        }
+
+        @Override
+        public void dispose() {
+            this.mesh.dispose();
+            this.mesh = null;
         }
     }
 }

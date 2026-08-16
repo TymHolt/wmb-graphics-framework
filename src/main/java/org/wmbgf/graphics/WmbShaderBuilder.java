@@ -62,7 +62,7 @@ public final class WmbShaderBuilder {
                 throw new LinkException(log);
             }
 
-            return new WmbAllocatedShaderGuard(null); // TODO Return actual result with guard
+            return new WmbAllocatedShaderGuard(new WmbAllocatedShader(programId));
         }
     }
 
@@ -86,6 +86,61 @@ public final class WmbShaderBuilder {
         @Override
         public void close() {
             GL30.glDeleteShader(this.id);
+        }
+    }
+
+    private static final class WmbAllocatedShader implements IWmbAllocatedShader {
+
+        private final int id;
+
+        private WmbAllocatedShader(int id) {
+            this.id = id;
+        }
+
+        @Override
+        public int getId() {
+            return this.id;
+        }
+
+        @Override
+        public int getUniformLocation(String name) {
+            Objects.requireNonNull(name, "name");
+            return GL30.glGetUniformLocation(this.id, name);
+        }
+
+        @Override
+        public void dispose() {
+            GL30.glDeleteProgram(this.id);
+        }
+    }
+
+    /**
+     * This class contains an IWmbAllocatedShader instance and propagates all function calls to the contained instance. The
+     * instance is set to null when disposed, that way all following calls will produce a NullPointerException as that
+     * resource is not available anymore.
+     */
+    public static final class WmbAllocatedShaderGuard implements IWmbAllocatedShader {
+
+        private IWmbAllocatedShader shader;
+
+        private WmbAllocatedShaderGuard(IWmbAllocatedShader shader) {
+            this.shader = shader;
+        }
+
+        @Override
+        public int getId() {
+            return this.shader.getId();
+        }
+
+        @Override
+        public int getUniformLocation(String name) {
+            return this.shader.getUniformLocation(name);
+        }
+
+        @Override
+        public void dispose() {
+            this.shader.dispose();
+            this.shader = null;
         }
     }
 
