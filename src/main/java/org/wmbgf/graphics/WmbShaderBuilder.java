@@ -20,6 +20,15 @@ public final class WmbShaderBuilder {
     }
 
     /**
+     * Append the given text to the vertex source code and append a new-line (\n).
+     *
+     * @param source The text to append as a line.
+     */
+    public void appendVertexShaderLn(String source) {
+        appendVertexShader(source + '\n');
+    }
+
+    /**
      * Append the given text to the fragment source code.
      *
      * @param source The text to append.
@@ -27,6 +36,15 @@ public final class WmbShaderBuilder {
     public void appendFragmentShader(String source) {
         Objects.requireNonNull(source);
         this.fsSource.append(source);
+    }
+
+    /**
+     * Append the given text to the fragment source code and append a new-line (\n).
+     *
+     * @param source The text to append as a line.
+     */
+    public void appendFragmentShaderLn(String source) {
+        appendFragmentShader(source + '\n');
     }
 
     /**
@@ -134,7 +152,13 @@ public final class WmbShaderBuilder {
 
         @Override
         public int getUniformLocation(String name) {
-            return this.shader.getUniformLocation(name);
+            Objects.requireNonNull(name);
+
+            final int location = this.shader.getUniformLocation(name);
+            if (location < 0)
+                throw new ResolveException(name);
+
+            return location;
         }
 
         @Override
@@ -169,6 +193,13 @@ public final class WmbShaderBuilder {
         private LinkException(String log) {
             super("Program creation failed");
             this.log = log;
+        }
+    }
+
+    public static final class ResolveException extends RuntimeException {
+
+        private ResolveException(String name) {
+            super("Could not find uniform location for name '" + name + "'");
         }
     }
 }
