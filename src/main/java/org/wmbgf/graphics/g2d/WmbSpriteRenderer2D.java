@@ -88,7 +88,7 @@ public final class WmbSpriteRenderer2D {
      */
     public void render(int x, int y, int width, int height, float r, float g, float b, float a) {
         // Correct Y to be oriented from top-left corner
-        final int correctedY = this.framebufferHeight - y - 1 - height;
+        final int correctedY = this.framebufferHeight - y - height;
         GL30.glViewport(x, correctedY, width, height);
         GL30.glUniform4f(this.colorUL, r, g, b, a);
         GL30.glDrawElements(GL30.GL_TRIANGLES, this.spriteMesh.getVertexCount(), GL30.GL_UNSIGNED_INT, 0);
