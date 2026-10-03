@@ -1,10 +1,7 @@
 package org.wmbgf.graphics.g2d;
 
 import org.lwjgl.opengl.GL30;
-import org.wmbgf.graphics.IWmbAllocatedMesh;
-import org.wmbgf.graphics.IWmbAllocatedShader;
-import org.wmbgf.graphics.WmbPrimitiveType;
-import org.wmbgf.graphics.WmbShaderBuilder;
+import org.wmbgf.graphics.*;
 
 public final class WmbSpriteRenderer2D {
 
@@ -97,7 +94,7 @@ public final class WmbSpriteRenderer2D {
         final int correctedY = this.framebufferHeight - y - height;
         GL30.glViewport(x, correctedY, width, height);
         GL30.glUniform4f(this.colorUL, r, g, b, a);
-        GL30.glDrawElements(GL30.GL_TRIANGLES, this.spriteMesh.getVertexCount(), GL30.GL_UNSIGNED_INT, 0);
+        GLUtils.issueElementsDrawCall(this.spriteMesh.getVertexCount());
     }
 
     private static IWmbAllocatedMesh buildSpriteMesh() {
