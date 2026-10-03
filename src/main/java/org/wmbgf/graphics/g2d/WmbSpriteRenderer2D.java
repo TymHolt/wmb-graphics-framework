@@ -61,8 +61,14 @@ public final class WmbSpriteRenderer2D {
         this.framebufferWidth = framebufferWidth;
         this.framebufferHeight = frameBufferHeight;
 
+        // Bind resources
         GL30.glBindVertexArray(this.spriteMesh.getId());
         GL30.glUseProgram(this.spriteShader.getId());
+
+        // OpenGL settings
+        GL30.glDisable(GL30.GL_DEPTH_TEST);
+        GL30.glBlendFunc(GL30.GL_SRC_ALPHA, GL30.GL_ONE_MINUS_SRC_ALPHA);
+        GL30.glEnable(GL30.GL_BLEND);
     }
 
     /**

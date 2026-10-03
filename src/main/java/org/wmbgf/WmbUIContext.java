@@ -11,7 +11,7 @@ import java.awt.*;
 public final class WmbUIContext {
 
     private static long windowId;
-    private static class WindowSize implements ISize2D {
+    private static class FramebufferSize implements ISize2D {
 
         int width;
         int height;
@@ -26,7 +26,7 @@ public final class WmbUIContext {
             return this.height;
         }
     };
-    private final static WindowSize windowSize = new WindowSize();
+    private final static FramebufferSize framebufferSize = new FramebufferSize();
 
     public static void runFramework(IApplicationHandler applicationHandler) {
         GLFWErrorCallback.createPrint(System.err).set();
@@ -64,8 +64,8 @@ public final class WmbUIContext {
                 final int[] widthPointer = new int[1];
                 final int[] heightPointer = new int[1];
                 GLFW.glfwGetFramebufferSize(windowId, widthPointer, heightPointer);
-                WmbUIContext.windowSize.width = widthPointer[0];
-                WmbUIContext.windowSize.height = heightPointer[0];
+                WmbUIContext.framebufferSize.width = widthPointer[0];
+                WmbUIContext.framebufferSize.height = heightPointer[0];
 
                 // Update application and render
                 applicationHandler.onUpdate();
@@ -84,7 +84,7 @@ public final class WmbUIContext {
         GLFW.glfwSetErrorCallback(null).free();
     }
 
-    public static ISize2D getSize() {
-        return WmbUIContext.windowSize;
+    public static ISize2D getFramebufferSize() {
+        return WmbUIContext.framebufferSize;
     }
 }
