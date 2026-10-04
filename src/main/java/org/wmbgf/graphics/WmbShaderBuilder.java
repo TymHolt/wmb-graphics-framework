@@ -2,8 +2,12 @@ package org.wmbgf.graphics;
 
 import org.lwjgl.opengl.GL30;
 
+import java.awt.image.BufferedImage;
 import java.util.Objects;
 
+/**
+ * A helper class for building and allocating GLSL shader programs to the GPU.
+ */
 public final class WmbShaderBuilder {
 
     private final StringBuilder vsSource = new StringBuilder();

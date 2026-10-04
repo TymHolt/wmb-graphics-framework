@@ -2,6 +2,9 @@ package org.wmbgf.graphics;
 
 import org.lwjgl.opengl.GL30;
 
+/**
+ * A collection of utilities and tools for OpenGL interactions.
+ */
 public final class GLUtils {
 
     /**
