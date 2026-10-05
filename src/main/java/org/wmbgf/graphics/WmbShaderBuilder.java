@@ -138,15 +138,21 @@ public final class WmbShaderBuilder {
     }
 
     /**
-     * This class contains an IWmbAllocatedShader instance and propagates all function calls to the contained instance. The
-     * instance is set to null when disposed, that way all following calls will produce a NullPointerException as that
-     * resource is not available anymore.
+     * This class contains an {@link WmbAllocatedShader} instance and propagates all function calls to the contained
+     * instance. The instance is set to {@code null} when disposed, that way all following calls will produce a
+     * {@link NullPointerException} as that resource is not available anymore.
      */
     public static final class WmbAllocatedShaderGuard implements IWmbAllocatedShader {
 
         private IWmbAllocatedShader shader;
 
-        private WmbAllocatedShaderGuard(IWmbAllocatedShader shader) {
+        /**
+         * Initialize the guard for the given instance.
+         *
+         * @param shader The {@link IWmbAllocatedShader} instance to guard, must not be {@code null}.
+         */
+        public WmbAllocatedShaderGuard(IWmbAllocatedShader shader) {
+            Objects.requireNonNull(shader);
             this.shader = shader;
         }
 

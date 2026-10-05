@@ -109,7 +109,48 @@ public final class WmbTextureBuilder {
         GL30.glTexImage2D(GL30.GL_TEXTURE_2D, 0, GL30.GL_RGBA, width, height, 0, GL30.GL_RGBA, GL30.GL_UNSIGNED_BYTE,
                 pixelDataBuffer);
 
-        return new WmbAllocatedTexture(textureId, width, height);
+        return new WmbAllocatedTextureGuard(new WmbAllocatedTexture(textureId, width, height));
+    }
+
+    /**
+     * This class contains an {@link IWmbAllocatedTexture} instance and propagates all function calls to the contained
+     * instance. The instance is set to {@code null} when disposed, that way all following calls will produce a
+     * {@link NullPointerException} as that resource is not available anymore.
+     */
+    public static final class WmbAllocatedTextureGuard implements IWmbAllocatedTexture {
+
+        private IWmbAllocatedTexture texture;
+
+        /**
+         * Initialize the guard for the given instance.
+         *
+         * @param texture The {@link IWmbAllocatedTexture} instance to guard, must not be {@code null}.
+         */
+        public WmbAllocatedTextureGuard(IWmbAllocatedTexture texture) {
+            Objects.requireNonNull(texture);
+            this.texture = texture;
+        }
+
+        @Override
+        public int getId() {
+            return this.texture.getId();
+        }
+
+        @Override
+        public int getWidth() {
+            return this.texture.getWidth();
+        }
+
+        @Override
+        public int getHeight() {
+            return this.texture.getHeight();
+        }
+
+        @Override
+        public void dispose() {
+            this.texture.dispose();
+            this.texture = null;
+        }
     }
 
     private static final class WmbAllocatedTexture implements IWmbAllocatedTexture {

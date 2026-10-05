@@ -198,15 +198,21 @@ public final class WmbMeshBuilder2D {
     }
 
     /**
-     * This class contains an IWmbAllocatedMesh instance and propagates all function calls to the contained instance. The
-     * instance is set to null when disposed, that way all following calls will produce a NullPointerException as that
-     * resource is not available anymore.
+     * This class contains an {@link IWmbAllocatedMesh} instance and propagates all function calls to the containe
+     * instance. The instance is set to {@code null} when disposed, that way all following calls will produce a
+     * {@link NullPointerException} as that resource is not available anymore.
      */
     private static final class WmbAllocatedMeshGuard implements IWmbAllocatedMesh {
 
         private IWmbAllocatedMesh mesh;
 
-        private WmbAllocatedMeshGuard(IWmbAllocatedMesh mesh) {
+        /**
+         * Initialize the guard for the given instance.
+         *
+         * @param mesh The {@link IWmbAllocatedMesh} instance to guard, must not be {@code null}.
+         */
+        public WmbAllocatedMeshGuard(IWmbAllocatedMesh mesh) {
+            Objects.requireNonNull(mesh);
             this.mesh = mesh;
         }
 
