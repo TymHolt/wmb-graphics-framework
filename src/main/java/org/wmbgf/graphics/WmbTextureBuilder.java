@@ -3,8 +3,11 @@ package org.wmbgf.graphics;
 import org.lwjgl.opengl.GL30;
 import org.lwjgl.system.MemoryUtil;
 
+import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Objects;
 
@@ -52,6 +55,16 @@ public final class WmbTextureBuilder {
     public void setImage(BufferedImage image) {
         Objects.requireNonNull(image);
         this.image = image;
+    }
+
+    /**
+     * Loads the given {@link File} as the used image. If an exception occurs, the current image is not updated.
+     *
+     * @param file The file to load as an image.
+     * @throws IOException If the loading fails.
+     */
+    public void loadImage(File file) throws IOException {
+        setImage(ImageIO.read(file));
     }
 
     /**

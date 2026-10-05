@@ -98,8 +98,9 @@ public final class WmbShaderBuilder {
             GL30.glCompileShader(id);
 
             if (GL30.glGetShaderi(id, GL30.GL_COMPILE_STATUS) == 0) {
+                final String log = GL30.glGetShaderInfoLog(id);
                 GL30.glDeleteShader(id);
-                throw new CompileException(type, GL30.glGetShaderInfoLog(id));
+                throw new CompileException(type, log);
             }
 
             return new GLShader(id);

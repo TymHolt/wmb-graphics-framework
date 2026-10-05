@@ -9,10 +9,7 @@ import org.wmbgf.graphics.*;
 public final class WmbSpriteRenderer2D {
 
     private final IWmbAllocatedMesh spriteMesh;
-    private final IWmbAllocatedShader spriteShader;
-    private final int colorUL;
-    private final int textureUL;
-    private final int texturedModeUL;
+    private final SpriteShader spriteShader;
 
     private int framebufferWidth = 0;
     private int framebufferHeight = 0;
@@ -23,15 +20,7 @@ public final class WmbSpriteRenderer2D {
     public WmbSpriteRenderer2D() {
         this.spriteMesh = buildSpriteMesh();
         try {
-            this.spriteShader = buildSpriteShader();
-            try {
-                this.colorUL = this.spriteShader.getUniformLocation("uColor");
-                this.textureUL = this.spriteShader.getUniformLocation("uTexture");
-                this.texturedModeUL = this.spriteShader.getUniformLocation("uTexturedMode");
-            } catch (Exception exception) {
-                this.spriteShader.dispose();
-                throw exception;
-            }
+            this.spriteShader = new SpriteShader();
         } catch (Exception exception) {
             this.spriteMesh.dispose();
             throw exception;
@@ -43,7 +32,7 @@ public final class WmbSpriteRenderer2D {
      */
     public void dispose() {
         this.spriteMesh.dispose();
-        this.spriteShader.dispose();
+        this.spriteShader.shader.dispose();
     }
 
     /**
@@ -67,8 +56,9 @@ public final class WmbSpriteRenderer2D {
 
         // Bind resources
         GL30.glBindVertexArray(this.spriteMesh.getId());
-        GL30.glUseProgram(this.spriteShader.getId());
+        GL30.glUseProgram(this.spriteShader.shader.getId());
         GL30.glActiveTexture(GL30.GL_TEXTURE0);
+        this.spriteShader.setTextureSlot(0);
 
         // OpenGL settings
         GL30.glDisable(GL30.GL_DEPTH_TEST);
@@ -78,7 +68,7 @@ public final class WmbSpriteRenderer2D {
 
     /**
      * Render a sprite with the given bounds and color. The renderer needs to be prepared before calling this using
-     * prepare(). Bounds orientation is from the top-left corner.
+     * {@link #prepare(int, int)}. Bounds orientation is from the top-left corner.
      *
      * @param x The x coordinate of the sprite bounds.
      * @param y The y coordinate of the sprite bounds.
@@ -93,14 +83,14 @@ public final class WmbSpriteRenderer2D {
         // Correct Y to be oriented from top-left corner
         final int correctedY = this.framebufferHeight - y - height;
         GL30.glViewport(x, correctedY, width, height);
-        GL30.glUniform1i(this.texturedModeUL, 0);
-        GL30.glUniform4f(this.colorUL, r, g, b, a);
+        this.spriteShader.setRenderMode(RenderMode.COLORED);
+        this.spriteShader.setColor(r, g, b, a);
         GLUtils.issueElementsDrawCall(this.spriteMesh.getVertexCount());
     }
 
     /**
      * Render a sprite with the given bounds and texture. The renderer needs to be prepared before calling this using
-     * prepare(). Bounds orientation is from the top-left corner.
+     * {@link #prepare(int, int)}. Bounds orientation is from the top-left corner.
      *
      * @param x The x coordinate of the sprite bounds.
      * @param y The y coordinate of the sprite bounds.
@@ -112,8 +102,33 @@ public final class WmbSpriteRenderer2D {
         // Correct Y to be oriented from top-left corner
         final int correctedY = this.framebufferHeight - y - height;
         GL30.glViewport(x, correctedY, width, height);
-        GL30.glUniform1i(this.texturedModeUL, 1);
-        GL30.glUniform1i(this.textureUL, 0);
+        this.spriteShader.setRenderMode(RenderMode.TEXTURED);
+        GL30.glBindTexture(GL30.GL_TEXTURE_2D, texture.getId());
+        GLUtils.issueElementsDrawCall(this.spriteMesh.getVertexCount());
+    }
+
+    /**
+     * Render a sprite with the given bounds, color and texture. The renderer needs to be prepared before calling this
+     * using {@link #prepare(int, int)}. Bounds orientation is from the top-left corner. The texture and color are mixed
+     * by multiplication.
+     *
+     * @param x The x coordinate of the sprite bounds.
+     * @param y The y coordinate of the sprite bounds.
+     * @param width The width of the sprite bounds.
+     * @param height The height of the sprite bounds.
+     * @param texture The texture to fill the sprite with.
+     * @param r Red component of the sprite color.
+     * @param g Green component of the sprite color.
+     * @param b Bue component of the sprite color.
+     * @param a Alpha component of the sprite color.
+     */
+    public void render(int x, int y, int width, int height, IWmbAllocatedTexture texture, float r, float g, float b,
+                       float a) {
+        // Correct Y to be oriented from top-left corner
+        final int correctedY = this.framebufferHeight - y - height;
+        GL30.glViewport(x, correctedY, width, height);
+        this.spriteShader.setRenderMode(RenderMode.MIXED);
+        this.spriteShader.setColor(r, g, b, a);
         GL30.glBindTexture(GL30.GL_TEXTURE_2D, texture.getId());
         GLUtils.issueElementsDrawCall(this.spriteMesh.getVertexCount());
     }
@@ -141,31 +156,83 @@ public final class WmbSpriteRenderer2D {
         return meshBuilder.allocate(false);
     }
 
-    private static IWmbAllocatedShader buildSpriteShader() {
-        final WmbShaderBuilder shaderBuilder = new WmbShaderBuilder();
+    private enum RenderMode {
+        COLORED(0),
+        TEXTURED(1),
+        MIXED(2);
 
-        shaderBuilder.appendVertexShaderLn("#version 330 core");
-        shaderBuilder.appendVertexShaderLn("layout (location = 0) in vec2 aPosition;");
-        shaderBuilder.appendVertexShaderLn("out vec2 pTexturePosition;");
-        shaderBuilder.appendVertexShaderLn("void main() {");
-        shaderBuilder.appendVertexShaderLn("    gl_Position = vec4(aPosition, 0.0, 1.0);");
-        shaderBuilder.appendVertexShaderLn("    pTexturePosition = vec2((aPosition.x + 1.0) / 2.0,");
-        shaderBuilder.appendVertexShaderLn("        (aPosition.y + 1.0) / 2.0);");
-        shaderBuilder.appendVertexShaderLn("}");
+        private final int id;
 
-        shaderBuilder.appendFragmentShaderLn("#version 330 core");
-        shaderBuilder.appendFragmentShaderLn("in vec2 pTexturePosition;");
-        shaderBuilder.appendFragmentShaderLn("uniform vec4 uColor;");
-        shaderBuilder.appendFragmentShaderLn("uniform sampler2D uTexture;");
-        shaderBuilder.appendFragmentShaderLn("uniform int uTexturedMode;");
-        shaderBuilder.appendFragmentShaderLn("out vec4 oFragColor;");
-        shaderBuilder.appendFragmentShaderLn("void main() {");
-        shaderBuilder.appendFragmentShaderLn("    if (uTexturedMode == 0)");
-        shaderBuilder.appendFragmentShaderLn("        oFragColor = uColor;");
-        shaderBuilder.appendFragmentShaderLn("    else");
-        shaderBuilder.appendFragmentShaderLn("        oFragColor = texture(uTexture, pTexturePosition);");
-        shaderBuilder.appendFragmentShaderLn("}");
+        RenderMode(int id) {
+            this.id = id;
+        }
+    }
 
-        return shaderBuilder.allocate();
+    private static class SpriteShader {
+
+        private final IWmbAllocatedShader shader;
+        private final int colorUL;
+        private final int textureUL;
+        private final int renderModeUL;
+
+        SpriteShader() {
+            final WmbShaderBuilder shaderBuilder = new WmbShaderBuilder();
+
+            shaderBuilder.appendVertexShaderLn("#version 330 core");
+            shaderBuilder.appendVertexShaderLn("layout (location = 0) in vec2 aPosition;");
+            shaderBuilder.appendVertexShaderLn("out vec2 pTexturePosition;");
+            shaderBuilder.appendVertexShaderLn("void main() {");
+            shaderBuilder.appendVertexShaderLn("    gl_Position = vec4(aPosition, 0.0, 1.0);");
+            shaderBuilder.appendVertexShaderLn("    pTexturePosition = vec2((aPosition.x + 1.0) / 2.0,");
+            shaderBuilder.appendVertexShaderLn("        (aPosition.y + 1.0) / 2.0);");
+            shaderBuilder.appendVertexShaderLn("}");
+
+            shaderBuilder.appendFragmentShaderLn("#version 330 core");
+            shaderBuilder.appendFragmentShaderLn("in vec2 pTexturePosition;");
+            shaderBuilder.appendFragmentShaderLn("uniform vec4 uColor;");
+            shaderBuilder.appendFragmentShaderLn("uniform sampler2D uTexture;");
+            shaderBuilder.appendFragmentShaderLn("uniform int uRenderMode;");
+            shaderBuilder.appendFragmentShaderLn("out vec4 oFragColor;");
+            shaderBuilder.appendFragmentShaderLn("void main() {");
+            shaderBuilder.appendFragmentShaderLn("    switch (uRenderMode) {");
+            shaderBuilder.appendFragmentShaderLn("        case " + RenderMode.COLORED.id + ":");
+            shaderBuilder.appendFragmentShaderLn("            oFragColor = uColor;");
+            shaderBuilder.appendFragmentShaderLn("            break;");
+            shaderBuilder.appendFragmentShaderLn("        case " + RenderMode.TEXTURED.id + ":");
+            shaderBuilder.appendFragmentShaderLn("            oFragColor = texture(uTexture, pTexturePosition);");
+            shaderBuilder.appendFragmentShaderLn("            break;");
+            shaderBuilder.appendFragmentShaderLn("        case " + RenderMode.MIXED.id + ":");
+            shaderBuilder.appendFragmentShaderLn("            vec4 texColor = texture(uTexture, pTexturePosition);");
+            shaderBuilder.appendFragmentShaderLn("            oFragColor = texColor * uColor;");
+            shaderBuilder.appendFragmentShaderLn("            break;");
+            shaderBuilder.appendFragmentShaderLn("        default:");
+            shaderBuilder.appendFragmentShaderLn("            oFragColor = vec4(0.0, 0.0, 0.0, 1.0);");
+            shaderBuilder.appendFragmentShaderLn("            break;");
+            shaderBuilder.appendFragmentShaderLn("    }");
+            shaderBuilder.appendFragmentShaderLn("}");
+
+            this.shader = shaderBuilder.allocate();
+
+            try {
+                this.colorUL = this.shader.getUniformLocation("uColor");
+                this.textureUL = this.shader.getUniformLocation("uTexture");
+                this.renderModeUL = this.shader.getUniformLocation("uRenderMode");
+            } catch (Exception exception) {
+                this.shader.dispose();
+                throw exception;
+            }
+        }
+
+        void setColor(float red, float green, float blue, float alpha) {
+            GL30.glUniform4f(this.colorUL, red, green, blue, alpha);
+        }
+
+        void setTextureSlot(int slot) {
+            GL30.glUniform1i(this.textureUL, slot);
+        }
+
+        void setRenderMode(RenderMode mode) {
+            GL30.glUniform1i(this.renderModeUL, mode.id);
+        }
     }
 }
