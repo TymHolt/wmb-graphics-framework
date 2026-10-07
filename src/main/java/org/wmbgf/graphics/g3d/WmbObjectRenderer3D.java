@@ -137,15 +137,19 @@ public final class WmbObjectRenderer3D {
 
             shaderBuilder.appendVertexShaderLn("#version 330 core");
             shaderBuilder.appendVertexShaderLn("layout (location = 0) in vec3 aPosition;");
-            shaderBuilder.appendVertexShaderLn("out vec2 pTexturePosition;");
+            shaderBuilder.appendVertexShaderLn("layout (location = 1) in vec2 aTextureUV;");
+            shaderBuilder.appendVertexShaderLn("layout (location = 2) in vec3 aNormal;");
+            shaderBuilder.appendVertexShaderLn("out vec2 pTextureUV;");
+            shaderBuilder.appendVertexShaderLn("out vec3 pNormal;");
             shaderBuilder.appendVertexShaderLn("void main() {");
             shaderBuilder.appendVertexShaderLn("    gl_Position = vec4(aPosition, 1.0);");
-            shaderBuilder.appendVertexShaderLn("    pTexturePosition = vec2((aPosition.x + 1.0) / 2.0,");
-            shaderBuilder.appendVertexShaderLn("        (aPosition.y + 1.0) / 2.0);");
+            shaderBuilder.appendVertexShaderLn("    pTextureUV = aTextureUV;");
+            shaderBuilder.appendVertexShaderLn("    pNormal = aNormal;");
             shaderBuilder.appendVertexShaderLn("}");
 
             shaderBuilder.appendFragmentShaderLn("#version 330 core");
-            shaderBuilder.appendFragmentShaderLn("in vec2 pTexturePosition;");
+            shaderBuilder.appendFragmentShaderLn("in vec2 pTextureUV;");
+            shaderBuilder.appendFragmentShaderLn("in vec3 pNormal;");
             shaderBuilder.appendFragmentShaderLn("uniform vec4 uColor;");
             shaderBuilder.appendFragmentShaderLn("uniform sampler2D uTexture;");
             shaderBuilder.appendFragmentShaderLn("uniform int uRenderMode;");
@@ -156,14 +160,16 @@ public final class WmbObjectRenderer3D {
             shaderBuilder.appendFragmentShaderLn("            oFragColor = uColor;");
             shaderBuilder.appendFragmentShaderLn("            break;");
             shaderBuilder.appendFragmentShaderLn("        case " + RenderMode.TEXTURED.id + ":");
-            shaderBuilder.appendFragmentShaderLn("            oFragColor = texture(uTexture, pTexturePosition);");
+            shaderBuilder.appendFragmentShaderLn("            oFragColor = texture(uTexture, pTextureUV);");
             shaderBuilder.appendFragmentShaderLn("            break;");
             shaderBuilder.appendFragmentShaderLn("        case " + RenderMode.MIXED.id + ":");
-            shaderBuilder.appendFragmentShaderLn("            vec4 texColor = texture(uTexture, pTexturePosition);");
+            shaderBuilder.appendFragmentShaderLn("            vec4 texColor = texture(uTexture, pTextureUV);");
             shaderBuilder.appendFragmentShaderLn("            oFragColor = texColor * uColor;");
             shaderBuilder.appendFragmentShaderLn("            break;");
             shaderBuilder.appendFragmentShaderLn("        default:");
-            shaderBuilder.appendFragmentShaderLn("            oFragColor = vec4(0.0, 0.0, 0.0, 1.0);");
+            // TODO Prevent GLSL compiler from optimizing normals out before they are actually used here
+            shaderBuilder.appendFragmentShaderLn("            //oFragColor = vec4(0.0, 0.0, 0.0, 1.0);");
+            shaderBuilder.appendFragmentShaderLn("            oFragColor = vec4(pNormal, 1.0);");
             shaderBuilder.appendFragmentShaderLn("            break;");
             shaderBuilder.appendFragmentShaderLn("    }");
             shaderBuilder.appendFragmentShaderLn("}");
