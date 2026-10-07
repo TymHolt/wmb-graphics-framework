@@ -2,6 +2,24 @@
 
 The graphics framework for the [World Map Builder](https://github.com/TymHolt/world-map-builder) Project.
 
+## Install for use
+
+To use this library for other projects, use **Maven**. Run
+> mvn install
+
+to have it built and installed as usable dependency. This library ships a fat JAR, thus you do not need any other
+dependencies to use it in your own application.
+
+```XML
+<dependencies>
+    <dependency>
+        <groupId>org.wmbgf</groupId>
+        <artifactId>wmb-graphics-framework</artifactId>
+        <version>0.1.0-SNAPSHOT</version>
+    </dependency>
+</dependencies>
+```
+
 ## Build
 
 This project can be built using **Maven**. Run
@@ -11,5 +29,6 @@ This project can be built using **Maven**. Run
 
 This project uses [LWJGL](https://www.lwjgl.org/).
 LWJGL is licensed under the BSD 3-Clause License.
-The project also includes third-party components distributed with LWJGL. Their respective license texts are included in the `licenses/` directory.
+The project also includes third-party components distributed with LWJGL. Their respective license texts are included in
+the `licenses/` directory.
 
