@@ -1,4 +1,4 @@
-package org.wmbgf.graphics.g2d;
+package org.wmbgf.graphics.g3d;
 
 import org.lwjgl.opengl.GL30;
 import org.wmbgf.graphics.GLUtils;
@@ -13,18 +13,18 @@ import java.util.Objects;
 /**
  * A utility for building 2D mesh data and allocating to the GPU.
  */
-public final class WmbMeshBuilder2D {
+public final class WmbMeshBuilder3D {
 
     private final WmbPrimitiveType primitiveType;
     private final FloatArrayBuilder vertexValues = new FloatArrayBuilder();
     private final IntArrayBuilder indexValues = new IntArrayBuilder();
 
     /**
-     * Create a builder for 2D meshes.
+     * Create a builder for 3D meshes.
      *
      * @param primitiveType The type of primitive the mesh is made of, must not be {@code null}.
      */
-    public WmbMeshBuilder2D(WmbPrimitiveType primitiveType) {
+    public WmbMeshBuilder3D(WmbPrimitiveType primitiveType) {
         Objects.requireNonNull(primitiveType, "primitiveType");
         this.primitiveType = primitiveType;
     }
@@ -35,9 +35,10 @@ public final class WmbMeshBuilder2D {
      * @param x The vertices x coordinate.
      * @param y The vertices y coordinate.
      */
-    public void addVertex(float x, float y) {
+    public void addVertex(float x, float y, float z) {
         this.vertexValues.append(x);
         this.vertexValues.append(y);
+        this.vertexValues.append(z);
         this.indexValues.append(this.indexValues.getSize());
     }
 
@@ -68,16 +69,16 @@ public final class WmbMeshBuilder2D {
 
         if(indexCount % this.primitiveType.vertexCount != 0)
             throw new IllegalStateException(
-                String.format("Index count (%d) does not match primitive type vertex count (%d)",
-                    indexCount, this.primitiveType.vertexCount));
+                    String.format("Index count (%d) does not match primitive type vertex count (%d)",
+                            indexCount, this.primitiveType.vertexCount));
 
-        final int valuesPerVertex = 2;
+        final int valuesPerVertex = 3;
         final int vertexValueCount = this.vertexValues.getSize();
 
         if (vertexValueCount % valuesPerVertex != 0)
             throw new IllegalStateException(
-                String.format("Vertex values (%d) do not match vertex length (%d)",
-                    vertexValueCount, valuesPerVertex));
+                    String.format("Vertex values (%d) do not match vertex length (%d)",
+                            vertexValueCount, valuesPerVertex));
 
         final int vertexCount = vertexValueCount / valuesPerVertex;
         final IntArrayBuilder.BuilderIterator indexIterator = this.indexValues.createIterator();
@@ -85,8 +86,8 @@ public final class WmbMeshBuilder2D {
             final int index = indexIterator.getCurrent();
             if (index < 0 || index >= vertexCount)
                 throw new IllegalStateException(
-                    String.format("Index (%d) out of range, vertex count is %d",
-                        index, vertexCount));
+                        String.format("Index (%d) out of range, vertex count is %d",
+                                index, vertexCount));
         } while (indexIterator.next());
     }
 
@@ -124,12 +125,12 @@ public final class WmbMeshBuilder2D {
         try {
             GL30.glBindVertexArray(vaoId);
 
-            final int vboId = GLUtils.createVbo(0, 2, this.vertexValues.toArray());
+            final int vboId = GLUtils.createVbo(0, 3, this.vertexValues.toArray());
             try {
                 final int eboId = GLUtils.createEbo(this.indexValues.toArray());
                 try {
-                    return new WmbAllocatedMeshGuard(new WmbAllocatedMesh2D(vaoId, new int[] {vboId, eboId},
-                        this.indexValues.getSize()));
+                    return new WmbAllocatedMeshGuard(new WmbAllocatedMesh3D(vaoId, new int[] {vboId, eboId},
+                            this.indexValues.getSize()));
                 } catch (Exception exception) {
                     GL30.glDeleteBuffers(eboId);
                     throw exception;
@@ -147,13 +148,13 @@ public final class WmbMeshBuilder2D {
         }
     }
 
-    private static final class WmbAllocatedMesh2D implements IWmbAllocatedMesh {
+    private static final class WmbAllocatedMesh3D implements IWmbAllocatedMesh {
 
         private final int vaoId;
         private final int[] bufferIds;
         private final int vertexCount;
 
-        private WmbAllocatedMesh2D(int vaoId, int[] bufferIds, int vertexCount) {
+        private WmbAllocatedMesh3D(int vaoId, int[] bufferIds, int vertexCount) {
             this.vaoId = vaoId;
             this.bufferIds = bufferIds;
             this.vertexCount = vertexCount;
