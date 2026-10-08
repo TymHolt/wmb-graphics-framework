@@ -10,6 +10,7 @@ import org.wmbgf.graphics.g2d.ISize2D;
 public final class WmbObjectRenderer3D {
 
     private final ObjectShader objectShader;
+    private int nextVertexCount = 0;
 
     /**
      * Allocates the needed resources.
@@ -58,53 +59,68 @@ public final class WmbObjectRenderer3D {
     }
 
     /**
-     * Render an object with the given color. The renderer needs to be prepared before calling this using
+     * Set the mesh to use in the render calls. The renderer needs to be prepared before calling this using
      * {@link #prepare(int, int, WmbCamera3D)}.
      *
      * @param mesh The mesh to render, must not be {@code null} and has to support the 3D pipeline.
+     */
+    public void setObjectMesh(IWmbAllocatedMesh mesh) {
+        GL30.glBindVertexArray(mesh.getId());
+        this.nextVertexCount = mesh.getVertexCount();
+    }
+
+    /**
+     * Set the transform to use in the render calls. The renderer needs to be prepared before calling this using
+     * {@link #prepare(int, int, WmbCamera3D)}.
+     *
+     * @param transform The transform to use, must not be {@code null}.
+     */
+    public void setObjectTransform(WmbObjectTransform3D transform) {
+        this.objectShader.setTransform(transform);
+    }
+
+    /**
+     * Render an object with the given color. The renderer needs to be prepared before calling this using
+     * {@link #prepare(int, int, WmbCamera3D)}.
+     *
      * @param r Red component of the object color.
      * @param g Green component of the object color.
      * @param b Bue component of the object color.
      * @param a Alpha component of the object color.
      */
-    public void render(IWmbAllocatedMesh mesh, float r, float g, float b, float a) {
-        GL30.glBindVertexArray(mesh.getId());
+    public void render(float r, float g, float b, float a) {
         this.objectShader.setRenderMode(RenderMode.COLORED);
         this.objectShader.setColor(r, g, b, a);
-        GLUtils.issueElementsDrawCall(mesh.getVertexCount());
+        GLUtils.issueElementsDrawCall(this.nextVertexCount);
     }
 
     /**
      * Render an object with the given texture. The renderer needs to be prepared before calling this using
      * {@link #prepare(int, int, WmbCamera3D)}.
      *
-     * @param mesh The mesh to render, must not be {@code null} and has to support the 3D pipeline.
      * @param texture The texture to apply.
      */
-    public void render(IWmbAllocatedMesh mesh, IWmbAllocatedTexture texture) {
-        GL30.glBindVertexArray(mesh.getId());
+    public void render(IWmbAllocatedTexture texture) {
         this.objectShader.setRenderMode(RenderMode.TEXTURED);
         GL30.glBindTexture(GL30.GL_TEXTURE_2D, texture.getId());
-        GLUtils.issueElementsDrawCall(mesh.getVertexCount());
+        GLUtils.issueElementsDrawCall(this.nextVertexCount);
     }
 
     /**
      * Render an object with the given color and texture. The renderer needs to be prepared before calling this using
      * {@link #prepare(int, int, WmbCamera3D)}. The texture and color are mixed by multiplication.
      *
-     * @param mesh The mesh to render, must not be {@code null} and has to support the 3D pipeline.
      * @param texture The texture to fill the sprite with.
-     * @param r Red component of the sprite color.
-     * @param g Green component of the sprite color.
-     * @param b Bue component of the sprite color.
-     * @param a Alpha component of the sprite color.
+     * @param r       Red component of the sprite color.
+     * @param g       Green component of the sprite color.
+     * @param b       Bue component of the sprite color.
+     * @param a       Alpha component of the sprite color.
      */
-    public void render(IWmbAllocatedMesh mesh, IWmbAllocatedTexture texture, float r, float g, float b, float a) {
-        GL30.glBindVertexArray(mesh.getId());
+    public void render(IWmbAllocatedTexture texture, float r, float g, float b, float a) {
         this.objectShader.setRenderMode(RenderMode.MIXED);
         this.objectShader.setColor(r, g, b, a);
         GL30.glBindTexture(GL30.GL_TEXTURE_2D, texture.getId());
-        GLUtils.issueElementsDrawCall(mesh.getVertexCount());
+        GLUtils.issueElementsDrawCall(this.nextVertexCount);
     }
 
     /**
@@ -133,6 +149,7 @@ public final class WmbObjectRenderer3D {
         private final IWmbAllocatedShader shader;
         private final int viewUL;
         private final int projectionUL;
+        private final int transformUL;
         private final int colorUL;
         private final int textureUL;
         private final int renderModeUL;
@@ -146,10 +163,12 @@ public final class WmbObjectRenderer3D {
             shaderBuilder.appendVertexShaderLn("layout (location = 2) in vec3 aNormal;");
             shaderBuilder.appendVertexShaderLn("uniform mat4 uView;");
             shaderBuilder.appendVertexShaderLn("uniform mat4 uProjection;");
+            shaderBuilder.appendVertexShaderLn("uniform mat4 uTransform;");
             shaderBuilder.appendVertexShaderLn("out vec2 pTextureUV;");
             shaderBuilder.appendVertexShaderLn("out vec3 pNormal;");
             shaderBuilder.appendVertexShaderLn("void main() {");
-            shaderBuilder.appendVertexShaderLn("    gl_Position = uProjection * uView * vec4(aPosition, 1.0);");
+            shaderBuilder.appendVertexShaderLn("    mat4 cameraMatrix = uProjection * uView;");
+            shaderBuilder.appendVertexShaderLn("    gl_Position = cameraMatrix * uTransform * vec4(aPosition, 1.0);");
             shaderBuilder.appendVertexShaderLn("    pTextureUV = aTextureUV;");
             shaderBuilder.appendVertexShaderLn("    pNormal = aNormal;");
             shaderBuilder.appendVertexShaderLn("}");
@@ -186,6 +205,7 @@ public final class WmbObjectRenderer3D {
             try {
                 this.viewUL = this.shader.getUniformLocation("uView");
                 this.projectionUL = this.shader.getUniformLocation("uProjection");
+                this.transformUL = this.shader.getUniformLocation("uTransform");
                 this.colorUL = this.shader.getUniformLocation("uColor");
                 this.textureUL = this.shader.getUniformLocation("uTexture");
                 this.renderModeUL = this.shader.getUniformLocation("uRenderMode");
@@ -198,6 +218,10 @@ public final class WmbObjectRenderer3D {
         void setCamera(WmbCamera3D camera, float aspect) {
             GLUtils.uniformMat4(this.viewUL, camera.getViewMatrix());
             GLUtils.uniformMat4(this.projectionUL, camera.getProjectionMatrix(aspect));
+        }
+
+        void setTransform(WmbObjectTransform3D transform) {
+            GLUtils.uniformMat4(this.transformUL, transform.getTransformMatrix());
         }
 
         void setColor(float red, float green, float blue, float alpha) {

@@ -65,7 +65,13 @@ public final class WmbUIContext {
         try {
             applicationHandler.onInit();
 
+            double lastUpdateTime = GLFW.glfwGetTime();
             while (!GLFW.glfwWindowShouldClose(WmbUIContext.windowId)) {
+                // Update delta time
+                final double currentUpdateTime = GLFW.glfwGetTime();
+                final float deltaTime = (float) (currentUpdateTime - lastUpdateTime);
+                lastUpdateTime = currentUpdateTime;
+
                 // Poll UI events
                 GLFW.glfwPollEvents();
 
@@ -77,7 +83,7 @@ public final class WmbUIContext {
                 WmbUIContext.framebufferSize.height = heightPointer[0];
 
                 // Update application and render
-                applicationHandler.onUpdate();
+                applicationHandler.onUpdate(deltaTime);
                 GLFW.glfwSwapBuffers(WmbUIContext.windowId);
             }
 
