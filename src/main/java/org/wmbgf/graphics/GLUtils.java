@@ -1,6 +1,8 @@
 package org.wmbgf.graphics;
 
+import org.joml.Matrix4f;
 import org.lwjgl.opengl.GL30;
+import org.lwjgl.system.MemoryStack;
 
 import java.util.Objects;
 
@@ -135,6 +137,18 @@ public final class GLUtils {
         } catch(Exception exception) {
             GL30.glDeleteBuffers(eboId);
             throw exception;
+        }
+    }
+
+    /**
+     * Upload a {@link Matrix4f} to the given uniform location.
+     *
+     * @param location The uniform location for the upload.
+     * @param matrix The matrix to upload, must not be {@code null}.
+     */
+    public static void uniformMat4(int location, Matrix4f matrix) {
+        try (MemoryStack stack = MemoryStack.stackPush()) {
+            GL30.glUniformMatrix4fv(location, false, matrix.get(stack.mallocFloat(16)));
         }
     }
 }
