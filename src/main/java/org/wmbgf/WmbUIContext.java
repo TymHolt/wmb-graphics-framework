@@ -8,6 +8,9 @@ import org.wmbgf.graphics.g2d.ISize2D;
 
 import java.awt.*;
 
+/**
+ * The main handling class of the WmbUI Graphics Framework.
+ */
 public final class WmbUIContext {
 
     private static long windowId;
@@ -28,6 +31,12 @@ public final class WmbUIContext {
     };
     private final static FramebufferSize framebufferSize = new FramebufferSize();
 
+    /**
+     * Initializes all APIs and runs the given application. This method is blocking and will not return until the
+     * application exits. The window will have a generic title and size.
+     *
+     * @param applicationHandler The handler to run, must not be {@code null}.
+     */
     public static void runFramework(IApplicationHandler applicationHandler) {
         GLFWErrorCallback.createPrint(System.err).set();
 
@@ -78,13 +87,31 @@ public final class WmbUIContext {
         }
 
         // Destroy
-        Callbacks.glfwFreeCallbacks(windowId);
+        Callbacks.glfwFreeCallbacks(WmbUIContext.windowId);
         GLFW.glfwDestroyWindow(WmbUIContext.windowId);
         GLFW.glfwTerminate();
         GLFW.glfwSetErrorCallback(null).free();
     }
 
+    /**
+     * Returns the current framebuffer size of the main window. With no application running this method produces
+     * undefined results, but never {@code null}.
+     *
+     * @return The main window framebuffer size.
+     */
     public static ISize2D getFramebufferSize() {
         return WmbUIContext.framebufferSize;
+    }
+
+    /**
+     * Update the title of the main window. With no application running, this method produces undefined behavior und may
+     * produce an exception in underlying API calls.
+     *
+     * @param title The new title, may be null.
+     */
+    public static void setTitle(String title) {
+        if (title == null)
+            title = "null";
+        GLFW.glfwSetWindowTitle(WmbUIContext.windowId, title);
     }
 }
