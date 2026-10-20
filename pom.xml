@@ -46,6 +46,12 @@
 
     <dependencies>
         <dependency>
+            <groupId>org.wmbol</groupId>
+            <artifactId>wmb-obj-loader</artifactId>
+            <version>0.1.0</version>
+        </dependency>
+
+        <dependency>
             <groupId>org.lwjgl</groupId>
             <artifactId>lwjgl</artifactId>
             <version>${lwjgl.version}</version>

@@ -22,12 +22,17 @@ dependencies to use it in your own application.
 
 ## Build
 
+**Manual Dependencies**
+- [wmb-obj-loader v0.1.0](https://github.com/TymHolt/wmb-obj-loader/releases/tag/v0.1.0)
+
+**Build**
+
 This project can be built using **Maven**. Run
 > mvn clean package
 
 ## Third-Party Licenses
-This project uses [LWJGL](https://www.lwjgl.org/) and [JOML](https://github.com/JOML-CI/JOML/tree/main).
-**LWJGL** is licensed under the *BSD 3-Clause License*, **JOML** under the *MIT License*. The project also includes
-third-party  components distributed with these dependencies. Their respective license texts are included in the
-`licenses/` directory.
+This project uses [LWJGL](https://www.lwjgl.org/), [JOML](https://github.com/JOML-CI/JOML/tree/main) and [wmb-obj-loader](https://github.com/TymHolt/wmb-obj-loader/).
+**LWJGL** is licensed under the *BSD 3-Clause License*, **JOML** and **wmb-obj-loader** under the *MIT License*. The
+project also includes  third-party  components distributed with these dependencies. Their respective license texts are
+included in the `licenses/` directory.
 
