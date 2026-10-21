@@ -1,13 +1,18 @@
 package org.wmbgf.graphics.g2d;
 
 import org.lwjgl.opengl.GL30;
+import org.wmbgf.graphics.GLUtils;
 import org.wmbgf.graphics.IWmbAllocatedMesh;
+import org.wmbgf.graphics.WmbAllocatedMeshGuard;
 import org.wmbgf.graphics.WmbPrimitiveType;
 import org.wmbgf.utils.FloatArrayBuilder;
 import org.wmbgf.utils.IntArrayBuilder;
 
 import java.util.Objects;
 
+/**
+ * A utility for building 2D mesh data and allocating to the GPU.
+ */
 public final class WmbMeshBuilder2D {
 
     private final WmbPrimitiveType primitiveType;
@@ -17,7 +22,7 @@ public final class WmbMeshBuilder2D {
     /**
      * Create a builder for 2D meshes.
      *
-     * @param primitiveType The type of primitive the mesh is made of.
+     * @param primitiveType The type of primitive the mesh is made of, must not be {@code null}.
      */
     public WmbMeshBuilder2D(WmbPrimitiveType primitiveType) {
         Objects.requireNonNull(primitiveType, "primitiveType");
@@ -95,7 +100,7 @@ public final class WmbMeshBuilder2D {
 
     /**
      * Allocates the added data on the GPU and returns a mesh instance that can be used for rendering. The data is
-     * verified using verifyExcept(), so an IllegalStateException may be thrown when the data is wrong.
+     * verified using {@link #verifyExcept()}, so an IllegalStateException may be thrown when the data is wrong.
      *
      * @return The ready-to-render mesh.
      * @throws IllegalStateException If the data cannot be verified.
@@ -107,7 +112,7 @@ public final class WmbMeshBuilder2D {
     /**
      * Allocates the added data on the GPU and returns a mesh instance that can be used for rendering.
      *
-     * @param verifyData If the data should be verified before allocation using verifyEcept().
+     * @param verifyData If the data should be verified before allocation using {@link #verifyExcept()}.
      * @return The ready-to-render mesh.
      * @throws IllegalStateException If the data fails verification.
      */
@@ -119,9 +124,9 @@ public final class WmbMeshBuilder2D {
         try {
             GL30.glBindVertexArray(vaoId);
 
-            final int vboId = createVbo(0, this.vertexValues.toArray());
+            final int vboId = GLUtils.createVbo(0, 2, this.vertexValues.toArray());
             try {
-                final int eboId = createEbo(this.indexValues.toArray());
+                final int eboId = GLUtils.createEbo(this.indexValues.toArray());
                 try {
                     return new WmbAllocatedMeshGuard(new WmbAllocatedMesh2D(vaoId, new int[] {vboId, eboId},
                         this.indexValues.getSize()));
@@ -139,32 +144,6 @@ public final class WmbMeshBuilder2D {
         } finally {
             GL30.glBindBuffer(GL30.GL_ARRAY_BUFFER, 0);
             GL30.glBindVertexArray(0);
-        }
-    }
-
-    private static int createVbo(int attributeIndex, float[] values) {
-        final int vboId = GL30.glGenBuffers();
-        try {
-            GL30.glBindBuffer(GL30.GL_ARRAY_BUFFER, vboId);
-            GL30.glBufferData(GL30.GL_ARRAY_BUFFER, values, GL30.GL_STATIC_DRAW);
-            GL30.glVertexAttribPointer(attributeIndex, 2, GL30.GL_FLOAT, false, 0, 0);
-            GL30.glEnableVertexAttribArray(attributeIndex);
-            return vboId;
-        } catch(Exception exception) {
-            GL30.glDeleteBuffers(vboId);
-            throw exception;
-        }
-    }
-
-    private static int createEbo(int[] values) {
-        final int eboId = GL30.glGenBuffers();
-        try {
-            GL30.glBindBuffer(GL30.GL_ELEMENT_ARRAY_BUFFER, eboId);
-            GL30.glBufferData(GL30.GL_ELEMENT_ARRAY_BUFFER, values, GL30.GL_STATIC_DRAW);
-            return eboId;
-        } catch(Exception exception) {
-            GL30.glDeleteBuffers(eboId);
-            throw exception;
         }
     }
 
@@ -194,42 +173,6 @@ public final class WmbMeshBuilder2D {
         public void dispose() {
             GL30.glDeleteVertexArrays(this.vaoId);
             GL30.glDeleteBuffers(this.bufferIds);
-        }
-    }
-
-    /**
-     * This class contains an {@link IWmbAllocatedMesh} instance and propagates all function calls to the containe
-     * instance. The instance is set to {@code null} when disposed, that way all following calls will produce a
-     * {@link NullPointerException} as that resource is not available anymore.
-     */
-    private static final class WmbAllocatedMeshGuard implements IWmbAllocatedMesh {
-
-        private IWmbAllocatedMesh mesh;
-
-        /**
-         * Initialize the guard for the given instance.
-         *
-         * @param mesh The {@link IWmbAllocatedMesh} instance to guard, must not be {@code null}.
-         */
-        public WmbAllocatedMeshGuard(IWmbAllocatedMesh mesh) {
-            Objects.requireNonNull(mesh);
-            this.mesh = mesh;
-        }
-
-        @Override
-        public int getId() {
-            return this.mesh.getId();
-        }
-
-        @Override
-        public int getVertexCount() {
-            return this.mesh.getVertexCount();
-        }
-
-        @Override
-        public void dispose() {
-            this.mesh.dispose();
-            this.mesh = null;
         }
     }
 }
