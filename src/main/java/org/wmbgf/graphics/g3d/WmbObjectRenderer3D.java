@@ -3,6 +3,9 @@ package org.wmbgf.graphics.g3d;
 import org.lwjgl.opengl.GL30;
 import org.wmbgf.graphics.*;
 import org.wmbgf.graphics.g2d.ISize2D;
+import org.wmbgf.utils.StreamLoader;
+
+import java.io.IOException;
 
 /**
  * A basic 3D renderer.
@@ -31,7 +34,7 @@ public final class WmbObjectRenderer3D {
      *
      * @param framebufferSize The framebuffer size that is the rendering target.
      * @param camera          The camera to render the objects from, must not be {@code null}.
-     * @param light             The light to use in the rendering of the world, must not be {@code null}.
+     * @param light           The light to use in the rendering of the world, must not be {@code null}.
      */
     public void prepare(ISize2D framebufferSize, WmbCamera3D camera, WmbWorldLight3D light) {
         prepare(framebufferSize.getWidth(), framebufferSize.getHeight(), camera, light);
@@ -150,6 +153,9 @@ public final class WmbObjectRenderer3D {
 
     private static class ObjectShader {
 
+        private static final String VS_CLASS_PATH = "/shaders/object_renderer_3d_vs.glsl";
+        private static final String FS_CLASS_PATH = "/shaders/object_renderer_3d_fs.glsl";
+
         private final IWmbAllocatedShader shader;
         private final int viewUL;
         private final int projectionUL;
@@ -164,53 +170,14 @@ public final class WmbObjectRenderer3D {
         ObjectShader() {
             final WmbShaderBuilder shaderBuilder = new WmbShaderBuilder();
 
-            shaderBuilder.appendVertexShaderLn("#version 330 core");
-            shaderBuilder.appendVertexShaderLn("layout (location = 0) in vec3 aPosition;");
-            shaderBuilder.appendVertexShaderLn("layout (location = 1) in vec2 aTextureUV;");
-            shaderBuilder.appendVertexShaderLn("layout (location = 2) in vec3 aNormal;");
-            shaderBuilder.appendVertexShaderLn("uniform mat4 uView;");
-            shaderBuilder.appendVertexShaderLn("uniform mat4 uProjection;");
-            shaderBuilder.appendVertexShaderLn("uniform mat4 uRotation;");
-            shaderBuilder.appendVertexShaderLn("uniform mat4 uTransform;");
-            shaderBuilder.appendVertexShaderLn("out vec2 pTextureUV;");
-            shaderBuilder.appendVertexShaderLn("out vec3 pNormal;");
-            shaderBuilder.appendVertexShaderLn("void main() {");
-            shaderBuilder.appendVertexShaderLn("    mat4 cameraMatrix = uProjection * uView;");
-            shaderBuilder.appendVertexShaderLn("    gl_Position = cameraMatrix * uTransform * vec4(aPosition, 1.0);");
-            shaderBuilder.appendVertexShaderLn("    pTextureUV = aTextureUV;");
-            shaderBuilder.appendVertexShaderLn("    pNormal = (uRotation * vec4(aNormal, 0.0)).xyz;");
-            shaderBuilder.appendVertexShaderLn("}");
-
-            shaderBuilder.appendFragmentShaderLn("#version 330 core");
-            shaderBuilder.appendFragmentShaderLn("in vec2 pTextureUV;");
-            shaderBuilder.appendFragmentShaderLn("in vec3 pNormal;");
-            shaderBuilder.appendFragmentShaderLn("uniform vec3 uLightDirection;");
-            shaderBuilder.appendFragmentShaderLn("uniform float uAmbienceFactor;");
-            shaderBuilder.appendFragmentShaderLn("uniform vec4 uColor;");
-            shaderBuilder.appendFragmentShaderLn("uniform sampler2D uTexture;");
-            shaderBuilder.appendFragmentShaderLn("uniform int uRenderMode;");
-            shaderBuilder.appendFragmentShaderLn("out vec4 oFragColor;");
-            shaderBuilder.appendFragmentShaderLn("void main() {");
-            shaderBuilder.appendFragmentShaderLn("    vec4 albedoColor = vec4(0.0, 0.0, 0.0, 1.0);");
-            shaderBuilder.appendFragmentShaderLn("    switch (uRenderMode) {");
-            shaderBuilder.appendFragmentShaderLn("        case " + RenderMode.COLORED.id + ":");
-            shaderBuilder.appendFragmentShaderLn("            albedoColor = uColor;");
-            shaderBuilder.appendFragmentShaderLn("            break;");
-            shaderBuilder.appendFragmentShaderLn("        case " + RenderMode.TEXTURED.id + ":");
-            shaderBuilder.appendFragmentShaderLn("            albedoColor = texture(uTexture, pTextureUV);");
-            shaderBuilder.appendFragmentShaderLn("            break;");
-            shaderBuilder.appendFragmentShaderLn("        case " + RenderMode.MIXED.id + ":");
-            shaderBuilder.appendFragmentShaderLn("            vec4 texColor = texture(uTexture, pTextureUV);");
-            shaderBuilder.appendFragmentShaderLn("            albedoColor = texColor * uColor;");
-            shaderBuilder.appendFragmentShaderLn("            break;");
-            shaderBuilder.appendFragmentShaderLn("    }");
-            shaderBuilder.appendFragmentShaderLn("    float diffuseFactor = max(-dot(normalize(pNormal), normalize(uLightDirection)), 0.0);");
-            shaderBuilder.appendFragmentShaderLn("    float shadeFactor = clamp(diffuseFactor + uAmbienceFactor, 0.0, 1.0);");
-            shaderBuilder.appendFragmentShaderLn("    oFragColor = vec4(albedoColor.xyz * shadeFactor, albedoColor.w);");
-            shaderBuilder.appendFragmentShaderLn("}");
+            try {
+                shaderBuilder.appendVertexShader(StreamLoader.loadResourceToString(VS_CLASS_PATH));
+                shaderBuilder.appendFragmentShader(StreamLoader.loadResourceToString(FS_CLASS_PATH));
+            } catch (IOException exception) {
+                throw new RuntimeException(exception);
+            }
 
             this.shader = shaderBuilder.allocate();
-
             try {
                 this.viewUL = this.shader.getUniformLocation("uView");
                 this.projectionUL = this.shader.getUniformLocation("uProjection");
