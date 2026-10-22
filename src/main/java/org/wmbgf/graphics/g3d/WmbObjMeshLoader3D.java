@@ -15,7 +15,7 @@ import java.util.List;
 /**
  * A utility to load and allocate {@code .obj} source as a {@link IWmbAllocatedMesh} for 3D purposes.
  */
-public final class WmbObjMeshLoader {
+public final class WmbObjMeshLoader3D {
 
     private final List<String> warnings = new ArrayList<>();
 

@@ -31,9 +31,10 @@ public final class WmbObjectRenderer3D {
      *
      * @param framebufferSize The framebuffer size that is the rendering target.
      * @param camera          The camera to render the objects from, must not be {@code null}.
+     * @param light             The light to use in the rendering of the world, must not be {@code null}.
      */
-    public void prepare(ISize2D framebufferSize, WmbCamera3D camera) {
-        prepare(framebufferSize.getWidth(), framebufferSize.getHeight(), camera);
+    public void prepare(ISize2D framebufferSize, WmbCamera3D camera, WmbWorldLight3D light) {
+        prepare(framebufferSize.getWidth(), framebufferSize.getHeight(), camera, light);
     }
 
     /**
@@ -42,8 +43,9 @@ public final class WmbObjectRenderer3D {
      * @param framebufferWidth  The framebuffer width that is the rendering target.
      * @param frameBufferHeight The framebuffer height that is the rendering target.
      * @param camera            The camera to render the objects from, must not be {@code null}.
+     * @param light             The light to use in the rendering of the world, must not be {@code null}.
      */
-    public void prepare(int framebufferWidth, int frameBufferHeight, WmbCamera3D camera) {
+    public void prepare(int framebufferWidth, int frameBufferHeight, WmbCamera3D camera, WmbWorldLight3D light) {
         GL30.glViewport(0, 0, framebufferWidth, frameBufferHeight);
 
         // Bind resources
@@ -51,6 +53,8 @@ public final class WmbObjectRenderer3D {
         GL30.glActiveTexture(GL30.GL_TEXTURE0);
         this.objectShader.setTextureSlot(0);
         this.objectShader.setCamera(camera, (float) framebufferWidth / (float) frameBufferHeight);
+        this.objectShader.setAmbienceFactor(light.ambience);
+        this.objectShader.setLightDirection(light.x, light.y, light.z);
 
         // OpenGL settings
         GL30.glEnable(GL30.GL_DEPTH_TEST);
@@ -60,7 +64,7 @@ public final class WmbObjectRenderer3D {
 
     /**
      * Set the mesh to use in the render calls. The renderer needs to be prepared before calling this using
-     * {@link #prepare(int, int, WmbCamera3D)}.
+     * {@link #prepare(int, int, WmbCamera3D, WmbWorldLight3D)}.
      *
      * @param mesh The mesh to render, must not be {@code null} and has to support the 3D pipeline.
      */
@@ -71,7 +75,7 @@ public final class WmbObjectRenderer3D {
 
     /**
      * Set the transform to use in the render calls. The renderer needs to be prepared before calling this using
-     * {@link #prepare(int, int, WmbCamera3D)}.
+     * {@link #prepare(int, int, WmbCamera3D, WmbWorldLight3D)}.
      *
      * @param transform The transform to use, must not be {@code null}.
      */
@@ -81,7 +85,7 @@ public final class WmbObjectRenderer3D {
 
     /**
      * Render an object with the given color. The renderer needs to be prepared before calling this using
-     * {@link #prepare(int, int, WmbCamera3D)}.
+     * {@link #prepare(int, int, WmbCamera3D, WmbWorldLight3D)}.
      *
      * @param r Red component of the object color.
      * @param g Green component of the object color.
@@ -96,7 +100,7 @@ public final class WmbObjectRenderer3D {
 
     /**
      * Render an object with the given texture. The renderer needs to be prepared before calling this using
-     * {@link #prepare(int, int, WmbCamera3D)}.
+     * {@link #prepare(int, int, WmbCamera3D, WmbWorldLight3D)}.
      *
      * @param texture The texture to apply.
      */
@@ -108,7 +112,7 @@ public final class WmbObjectRenderer3D {
 
     /**
      * Render an object with the given color and texture. The renderer needs to be prepared before calling this using
-     * {@link #prepare(int, int, WmbCamera3D)}. The texture and color are mixed by multiplication.
+     * {@link #prepare(int, int, WmbCamera3D, WmbWorldLight3D)}. The texture and color are mixed by multiplication.
      *
      * @param texture The texture to fill the sprite with.
      * @param r       Red component of the sprite color.
@@ -149,7 +153,10 @@ public final class WmbObjectRenderer3D {
         private final IWmbAllocatedShader shader;
         private final int viewUL;
         private final int projectionUL;
+        private final int rotationUL;
         private final int transformUL;
+        private final int lightDirectionUL;
+        private final int ambienceFactorUL;
         private final int colorUL;
         private final int textureUL;
         private final int renderModeUL;
@@ -163,6 +170,7 @@ public final class WmbObjectRenderer3D {
             shaderBuilder.appendVertexShaderLn("layout (location = 2) in vec3 aNormal;");
             shaderBuilder.appendVertexShaderLn("uniform mat4 uView;");
             shaderBuilder.appendVertexShaderLn("uniform mat4 uProjection;");
+            shaderBuilder.appendVertexShaderLn("uniform mat4 uRotation;");
             shaderBuilder.appendVertexShaderLn("uniform mat4 uTransform;");
             shaderBuilder.appendVertexShaderLn("out vec2 pTextureUV;");
             shaderBuilder.appendVertexShaderLn("out vec3 pNormal;");
@@ -170,34 +178,35 @@ public final class WmbObjectRenderer3D {
             shaderBuilder.appendVertexShaderLn("    mat4 cameraMatrix = uProjection * uView;");
             shaderBuilder.appendVertexShaderLn("    gl_Position = cameraMatrix * uTransform * vec4(aPosition, 1.0);");
             shaderBuilder.appendVertexShaderLn("    pTextureUV = aTextureUV;");
-            shaderBuilder.appendVertexShaderLn("    pNormal = aNormal;");
+            shaderBuilder.appendVertexShaderLn("    pNormal = (uRotation * vec4(aNormal, 0.0)).xyz;");
             shaderBuilder.appendVertexShaderLn("}");
 
             shaderBuilder.appendFragmentShaderLn("#version 330 core");
             shaderBuilder.appendFragmentShaderLn("in vec2 pTextureUV;");
             shaderBuilder.appendFragmentShaderLn("in vec3 pNormal;");
+            shaderBuilder.appendFragmentShaderLn("uniform vec3 uLightDirection;");
+            shaderBuilder.appendFragmentShaderLn("uniform float uAmbienceFactor;");
             shaderBuilder.appendFragmentShaderLn("uniform vec4 uColor;");
             shaderBuilder.appendFragmentShaderLn("uniform sampler2D uTexture;");
             shaderBuilder.appendFragmentShaderLn("uniform int uRenderMode;");
             shaderBuilder.appendFragmentShaderLn("out vec4 oFragColor;");
             shaderBuilder.appendFragmentShaderLn("void main() {");
+            shaderBuilder.appendFragmentShaderLn("    vec4 albedoColor = vec4(0.0, 0.0, 0.0, 1.0);");
             shaderBuilder.appendFragmentShaderLn("    switch (uRenderMode) {");
             shaderBuilder.appendFragmentShaderLn("        case " + RenderMode.COLORED.id + ":");
-            shaderBuilder.appendFragmentShaderLn("            oFragColor = uColor;");
+            shaderBuilder.appendFragmentShaderLn("            albedoColor = uColor;");
             shaderBuilder.appendFragmentShaderLn("            break;");
             shaderBuilder.appendFragmentShaderLn("        case " + RenderMode.TEXTURED.id + ":");
-            shaderBuilder.appendFragmentShaderLn("            oFragColor = texture(uTexture, pTextureUV);");
+            shaderBuilder.appendFragmentShaderLn("            albedoColor = texture(uTexture, pTextureUV);");
             shaderBuilder.appendFragmentShaderLn("            break;");
             shaderBuilder.appendFragmentShaderLn("        case " + RenderMode.MIXED.id + ":");
             shaderBuilder.appendFragmentShaderLn("            vec4 texColor = texture(uTexture, pTextureUV);");
-            shaderBuilder.appendFragmentShaderLn("            oFragColor = texColor * uColor;");
-            shaderBuilder.appendFragmentShaderLn("            break;");
-            shaderBuilder.appendFragmentShaderLn("        default:");
-            // TODO Prevent GLSL compiler from optimizing normals out before they are actually used here
-            shaderBuilder.appendFragmentShaderLn("            //oFragColor = vec4(0.0, 0.0, 0.0, 1.0);");
-            shaderBuilder.appendFragmentShaderLn("            oFragColor = vec4(pNormal, 1.0);");
+            shaderBuilder.appendFragmentShaderLn("            albedoColor = texColor * uColor;");
             shaderBuilder.appendFragmentShaderLn("            break;");
             shaderBuilder.appendFragmentShaderLn("    }");
+            shaderBuilder.appendFragmentShaderLn("    float diffuseFactor = max(-dot(normalize(pNormal), normalize(uLightDirection)), 0.0);");
+            shaderBuilder.appendFragmentShaderLn("    float shadeFactor = clamp(diffuseFactor + uAmbienceFactor, 0.0, 1.0);");
+            shaderBuilder.appendFragmentShaderLn("    oFragColor = vec4(albedoColor.xyz * shadeFactor, albedoColor.w);");
             shaderBuilder.appendFragmentShaderLn("}");
 
             this.shader = shaderBuilder.allocate();
@@ -205,7 +214,10 @@ public final class WmbObjectRenderer3D {
             try {
                 this.viewUL = this.shader.getUniformLocation("uView");
                 this.projectionUL = this.shader.getUniformLocation("uProjection");
+                this.rotationUL = this.shader.getUniformLocation("uRotation");
                 this.transformUL = this.shader.getUniformLocation("uTransform");
+                this.lightDirectionUL = this.shader.getUniformLocation("uLightDirection");
+                this.ambienceFactorUL = this.shader.getUniformLocation("uAmbienceFactor");
                 this.colorUL = this.shader.getUniformLocation("uColor");
                 this.textureUL = this.shader.getUniformLocation("uTexture");
                 this.renderModeUL = this.shader.getUniformLocation("uRenderMode");
@@ -221,7 +233,16 @@ public final class WmbObjectRenderer3D {
         }
 
         void setTransform(WmbObjectTransform3D transform) {
+            GLUtils.uniformMat4(this.rotationUL, transform.getRotationMatrix());
             GLUtils.uniformMat4(this.transformUL, transform.getTransformMatrix());
+        }
+
+        void setLightDirection(float x, float y, float z) {
+            GL30.glUniform3f(this.lightDirectionUL, x, y, z);
+        }
+
+        void setAmbienceFactor(float value) {
+            GL30.glUniform1f(this.ambienceFactorUL, value);
         }
 
         void setColor(float red, float green, float blue, float alpha) {
