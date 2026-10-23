@@ -23,7 +23,7 @@ dependencies to use it in your own application.
 ## Build
 
 **Manual Dependencies**
-- [wmb-obj-loader v0.1.0](https://github.com/TymHolt/wmb-obj-loader/releases/tag/v0.1.0)
+- [wmb-obj-loader v0.1.1-SNAPSHOT](https://github.com/TymHolt/wmb-obj-loader/pull/2)
 
 **Build**
 
