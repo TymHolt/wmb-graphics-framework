@@ -37,7 +37,7 @@ public final class WmbUIContext {
      *
      * @param applicationHandler The handler to run, must not be {@code null}.
      */
-    public static void runFramework(IApplicationHandler applicationHandler) {
+    public static void runFramework(IWmbApplicationHandler applicationHandler) {
         GLFWErrorCallback.createPrint(System.err).set();
 
         if (!GLFW.glfwInit())

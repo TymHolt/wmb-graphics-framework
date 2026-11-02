@@ -1,6 +1,6 @@
 package org.wmbgf;
 
-public interface IApplicationHandler {
+public interface IWmbApplicationHandler {
 
     void onInit();
     void onUpdate(float deltaTime);

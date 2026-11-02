@@ -1,5 +1,7 @@
 package org.wmbgf.utils;
 
+import javax.imageio.ImageIO;
+import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
@@ -20,19 +22,42 @@ public final class StreamLoader {
         return new String(stream.readAllBytes(), StandardCharsets.UTF_8);
     }
 
+
     /**
-     * Load the resource identified by the given path as a {@link String}.
+     * Load the resource identified by the given path as an {@link InputStream}.
      *
      * @param  path        The path to the resource in the class-path.
-     * @return             The loaded text resource.
-     * @throws IOException If any IO-Errors occur.
+     * @return             The stream of the resource. Never {@code null}.
+     * @throws IOException If any IO-Errors occur or if the resource does not exist.
      */
-    public static String loadResourceToString(String path) throws IOException {
+    public static InputStream loadResourceAsStream(String path) throws IOException {
         final InputStream stream = StreamLoader.class.getResourceAsStream(path);
 
         if (stream == null)
             throw new IOException("Resource " + path + " no found");
 
-        return loadStreamToString(stream);
+        return stream;
+    }
+
+    /**
+     * Load the resource identified by the given path as a {@link String}.
+     *
+     * @param  path        The path to the resource in the class-path.
+     * @return             The loaded text resource. Never {@code null}.
+     * @throws IOException If any IO-Errors occur or if the resource does not exist.
+     */
+    public static String loadResourceToString(String path) throws IOException {
+        return loadStreamToString(loadResourceAsStream(path));
+    }
+
+    /**
+     * Load the resource identified by the given path as a {@link BufferedImage}.
+     *
+     * @param  path        The path to the resource in the class-path.
+     * @return             The loaded image resource. Never {@code null}.
+     * @throws IOException If any IO-Errors occur or if the resource does not exist.
+     */
+    public static BufferedImage loadResourceToImage(String path) throws IOException {
+        return ImageIO.read(loadResourceAsStream(path));
     }
 }
