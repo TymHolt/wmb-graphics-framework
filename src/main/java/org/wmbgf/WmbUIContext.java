@@ -5,6 +5,8 @@ import org.lwjgl.glfw.GLFW;
 import org.lwjgl.glfw.GLFWErrorCallback;
 import org.lwjgl.opengl.GL;
 import org.wmbgf.graphics.g2d.ISize2D;
+import org.wmbgf.input.ClickAction;
+import org.wmbgf.input.KeyButton;
 
 import java.awt.*;
 
@@ -61,6 +63,12 @@ public final class WmbUIContext {
         GLFW.glfwShowWindow(WmbUIContext.windowId);
         GL.createCapabilities();
 
+        GLFW.glfwSetKeyCallback(WmbUIContext.windowId, (window, key, scancode, action, mods) -> {
+            final KeyButton keyButton = KeyButton.getByGlfwId(key);
+            final ClickAction clickAction = ClickAction.getByGlfwId(action);
+            applicationHandler.onKeyEvent(keyButton, clickAction);
+        });
+
         // Run application exception safe
         try {
             applicationHandler.onInit();
@@ -87,7 +95,7 @@ public final class WmbUIContext {
                 GLFW.glfwSwapBuffers(WmbUIContext.windowId);
             }
 
-            applicationHandler.onDestroy();
+            applicationHandler.onDispose();
         } catch (Exception exception) {
             exception.printStackTrace();
         }
@@ -119,5 +127,15 @@ public final class WmbUIContext {
         if (title == null)
             title = "null";
         GLFW.glfwSetWindowTitle(WmbUIContext.windowId, title);
+    }
+
+    /**
+     * Check if a given key is currently pressed.
+     *
+     * @param key The key to test.
+     * @return    {@code true} if the key is currently pressed.
+     */
+    public static boolean isKeyPressed(KeyButton key) {
+        return GLFW.glfwGetKey(WmbUIContext.windowId, key.getGlfwId()) == GLFW.GLFW_PRESS;
     }
 }

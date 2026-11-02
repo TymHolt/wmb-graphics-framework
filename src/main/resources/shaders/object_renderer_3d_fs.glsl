@@ -7,6 +7,7 @@ uniform vec3 uLightDirection;
 uniform float uAmbienceFactor;
 uniform vec4 uColor;
 uniform sampler2D uTexture;
+uniform float uColorMixFactor;
 uniform int uRenderMode;
 
 out vec4 oFragColor;
@@ -24,7 +25,7 @@ void main() {
 
         case 2: // MIXED
             vec4 texColor = texture(uTexture, pTextureUV);
-            albedoColor = texColor * uColor;
+            albedoColor = (1.0 - uColorMixFactor) * texColor + uColorMixFactor * uColor;
             break;
     }
 

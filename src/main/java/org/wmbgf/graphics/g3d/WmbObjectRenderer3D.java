@@ -115,17 +115,19 @@ public final class WmbObjectRenderer3D {
 
     /**
      * Render an object with the given color and texture. The renderer needs to be prepared before calling this using
-     * {@link #prepare(int, int, WmbCamera3D, WmbWorldLight3D)}. The texture and color are mixed by multiplication.
+     * {@link #prepare(int, int, WmbCamera3D, WmbWorldLight3D)}. The texture and color are mixed by the given factor.
      *
-     * @param texture The texture to fill the sprite with.
-     * @param r       Red component of the sprite color.
-     * @param g       Green component of the sprite color.
-     * @param b       Bue component of the sprite color.
-     * @param a       Alpha component of the sprite color.
+     * @param texture   The texture to fill the sprite with.
+     * @param r         Red component of the sprite color.
+     * @param g         Green component of the sprite color.
+     * @param b         Bue component of the sprite color.
+     * @param a         Alpha component of the sprite color.
+     * @param mixFactor The factor to mix the color. {@code 1.0} full color, {@code 0.0} no color.
      */
-    public void render(IWmbAllocatedTexture texture, float r, float g, float b, float a) {
+    public void render(IWmbAllocatedTexture texture, float r, float g, float b, float a, float mixFactor) {
         this.objectShader.setRenderMode(RenderMode.MIXED);
         this.objectShader.setColor(r, g, b, a);
+        this.objectShader.setColorMixFactor(mixFactor);
         GL30.glBindTexture(GL30.GL_TEXTURE_2D, texture.getId());
         GLUtils.issueElementsDrawCall(this.nextVertexCount);
     }
@@ -165,6 +167,7 @@ public final class WmbObjectRenderer3D {
         private final int ambienceFactorUL;
         private final int colorUL;
         private final int textureUL;
+        private final int colorMixFactorUL;
         private final int renderModeUL;
 
         ObjectShader() {
@@ -187,6 +190,7 @@ public final class WmbObjectRenderer3D {
                 this.ambienceFactorUL = this.shader.getUniformLocation("uAmbienceFactor");
                 this.colorUL = this.shader.getUniformLocation("uColor");
                 this.textureUL = this.shader.getUniformLocation("uTexture");
+                this.colorMixFactorUL = this.shader.getUniformLocation("uColorMixFactor");
                 this.renderModeUL = this.shader.getUniformLocation("uRenderMode");
             } catch (Exception exception) {
                 this.shader.dispose();
@@ -218,6 +222,10 @@ public final class WmbObjectRenderer3D {
 
         void setTextureSlot(int slot) {
             GL30.glUniform1i(this.textureUL, slot);
+        }
+
+        void setColorMixFactor(float value) {
+            GL30.glUniform1f(this.colorMixFactorUL, value);
         }
 
         void setRenderMode(RenderMode mode) {
